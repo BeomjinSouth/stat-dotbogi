@@ -1,0 +1,1335 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>통계 돋보기</title>
+<style>
+:root{
+  --bg:#F5F7FB;--card:#FFFFFF;--text:#1F2937;--muted:#6B7280;--line:#E5E7EB;--navy:#1E3A5F;--soft-line:#CBD5E1;
+  --a:#E07B39;--a-soft:#FCE9DC;--b:#3B7DC9;--b-soft:#E1ECF9;
+  --ok:#15803D;--ok-bg:#DCFCE7;--retry:#B45309;--retry-bg:#FEF3C7;--hl:#FFF4C2;--axis:#374151;
+}
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);font-family:"Pretendard","Noto Sans KR","Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif;font-size:18px;line-height:1.6;word-break:keep-all;overflow-wrap:break-word}
+button,input,textarea{font-family:inherit;color:inherit}
+h1,h2,h3,p{margin:0}
+.wrap{max-width:1112px;margin:0 auto;padding:0 16px}
+
+/* 머리띠 */
+.masthead{background:var(--navy);color:#fff}
+.masthead .wrap{padding-top:16px;padding-bottom:16px}
+.masthead h1{font-size:24px;font-weight:700;line-height:1.35}
+.masthead p{margin-top:2px;font-size:15px;line-height:1.5;color:#CBD5E1}
+
+/* 탭 */
+.tabs{display:flex;flex-wrap:wrap;gap:8px;padding:14px 0}
+.tab{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 18px;border:1px solid var(--soft-line);border-radius:999px;background:#fff;color:var(--navy);font-size:17px;font-weight:700;line-height:1.2;text-decoration:none;touch-action:manipulation}
+.tab:hover{background:#EEF2F7}
+.tab[aria-current="page"]{background:var(--navy);border-color:var(--navy);color:#fff}
+
+/* 카드 */
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin:0 0 16px}
+.card-head{margin-bottom:16px}
+.card-head h2{font-size:20px;font-weight:700;line-height:1.4}
+.desc{margin-top:4px;color:var(--muted)}
+.cols{display:grid;grid-template-columns:minmax(0,1fr);gap:20px}
+@media (min-width:820px){.cols{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px}}
+.cls{margin-bottom:10px;font-size:18px;font-weight:700;line-height:1.4}
+.cls-a{color:var(--a)}
+.cls-b{color:var(--b)}
+.stack>*+*{margin-top:16px}
+
+/* 단추 */
+.btns{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.btn{min-height:44px;padding:10px 18px;border:1px solid var(--navy);border-radius:10px;font-size:17px;font-weight:700;line-height:1.2;cursor:pointer;touch-action:manipulation}
+.btn-primary{background:var(--navy);color:#fff}
+.btn-primary:hover{background:#162C48}
+.btn-secondary{background:#fff;color:var(--navy)}
+.btn-secondary:hover{background:#EEF2F7}
+.btn-secondary[aria-pressed="true"],.btn-secondary.is-on{background:var(--navy);color:#fff}
+.seg{display:inline-flex;max-width:100%;border:1px solid var(--navy);border-radius:10px;overflow:hidden;background:#fff;vertical-align:top}
+.seg button{min-height:44px;padding:10px 18px;border:0;border-left:1px solid var(--navy);background:#fff;color:var(--navy);font-size:17px;font-weight:700;line-height:1.2;cursor:pointer;touch-action:manipulation}
+.seg button:first-child{border-left:0}
+.seg button:hover{background:#EEF2F7}
+.seg button[aria-pressed="true"]{background:var(--navy);color:#fff}
+@media (max-width:480px){.seg button{padding-left:10px;padding-right:10px}}
+.btn:focus-visible,.tab:focus-visible{outline:3px solid rgba(30,58,95,.35);outline-offset:2px}
+.seg button:focus-visible{outline:3px solid #93A9C6;outline-offset:-5px}
+
+/* 입력칸과 확인 표시 */
+.field{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-bottom:10px}
+.field>label{flex:0 0 var(--lw,104px)}
+.inp{width:110px;height:44px;padding:0 10px;border:1px solid var(--soft-line);border-radius:8px;background:#fff;font-size:18px;line-height:1.2}
+.inp:focus{outline:none;border-color:var(--navy);box-shadow:0 0 0 3px rgba(30,58,95,.18)}
+.badge{display:inline-flex;align-items:center;min-height:32px;padding:3px 10px;border-radius:8px;font-size:15px;font-weight:700;line-height:1.3;white-space:nowrap}
+.badge:empty{display:none}
+.badge.ok{color:var(--ok);background:var(--ok-bg)}
+.badge.retry{color:var(--retry);background:var(--retry-bg)}
+.badge.empty{padding-left:2px;padding-right:2px;color:var(--muted);font-weight:400}
+.answer{color:var(--muted);font-weight:700;font-variant-numeric:tabular-nums}
+
+/* 1차시 */
+.cells{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.cell{padding:4px 2px 6px;border:1px solid var(--line);border-radius:8px;text-align:center;font-variant-numeric:tabular-nums}
+.cell .no{display:block;font-size:15px;line-height:1.3;color:var(--muted)}
+.cell .v{display:block;font-size:18px;font-weight:700;line-height:1.35}
+.work{margin-top:14px;padding:14px 16px;border-radius:10px;background:var(--bg)}
+.work p+p{margin-top:4px}
+.nw{white-space:nowrap}
+.key{padding:0 3px;border-radius:4px}
+.key-med{background:var(--hl)}
+.key-mode-A{background:var(--a-soft)}
+.key-mode-B{background:var(--b-soft)}
+.sorted{display:grid;grid-template-columns:repeat(var(--cols,5),46px);gap:6px;margin-top:12px}
+.sc{display:flex;align-items:center;justify-content:center;height:36px;border:1px solid var(--line);border-radius:6px;background:#fff;font-size:17px;font-weight:700;font-variant-numeric:tabular-nums}
+.sc.med{background:var(--hl)}
+.sc.mode-A{background:var(--a-soft)}
+.sc.mode-B{background:var(--b-soft)}
+.sc.med.mode-A{background:linear-gradient(135deg,var(--hl) 50%,var(--a-soft) 50%)}
+.sc.med.mode-B{background:linear-gradient(135deg,var(--hl) 50%,var(--b-soft) 50%)}
+
+/* 표 */
+.tbl-wrap{overflow-x:auto}
+.tbl{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.tbl th,.tbl td{padding:8px 12px;border-bottom:1px solid var(--line);text-align:center;vertical-align:middle}
+.tbl thead th{border-top:1px solid var(--line);background:var(--bg);font-weight:700}
+.tbl tr.sum th,.tbl tr.sum td{font-weight:700}
+.tbl tr.hl th,.tbl tr.hl td{background:var(--hl)}
+.tbl-input{max-width:760px}
+.tbl-input td{padding-top:4px;padding-bottom:4px}
+.tbl-input .cellrow{display:grid;grid-template-columns:minmax(0,1fr) 110px minmax(0,1fr);align-items:center;column-gap:12px;min-height:44px}
+.tbl-input .cellrow>.inp,.tbl-input .cellrow>.sumv{grid-column:2}
+.tbl-input .sumv{padding-left:11px;text-align:left}
+.tbl-input .after{grid-column:3;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;text-align:left}
+.tbl-input .answer{min-width:22px;text-align:right}
+@media (max-width:560px){
+  .tbl-input .cellrow{grid-template-columns:110px;justify-content:center}
+  .tbl-input .cellrow>.inp,.tbl-input .cellrow>.sumv{grid-column:1}
+  .tbl-input .after{grid-column:1}
+  .tbl-input .after>*{margin-top:6px}
+}
+.tbl-cmp{max-width:560px}
+.tbl-cmp th[scope="row"]{font-weight:400}
+.tbl-cmp .changed{font-weight:700}
+.tbl-five th,.tbl-five td{padding-left:8px;padding-right:8px}
+.rc{display:block;font-size:15px;font-weight:700;line-height:1.3}
+.rc.same{color:var(--ok)}
+.rc.diff{color:var(--retry)}
+.tbl-sum{max-width:640px}
+.tbl-sum td:first-child{font-weight:400}
+
+/* 그래프 */
+.chart svg{display:block;width:100%;height:auto}
+.chart-title{margin-bottom:4px}
+.status{margin-top:16px;padding:12px 16px;border-radius:10px;background:var(--bg)}
+.note{margin-top:14px;color:var(--muted)}
+.lines p+p{margin-top:2px}
+.result{padding:12px 16px;border-radius:10px;font-weight:700;font-variant-numeric:tabular-nums}
+.result-A{background:var(--a-soft)}
+.result-B{background:var(--b-soft)}
+.okline{margin-top:14px;padding:12px 16px;border-radius:10px;background:var(--ok-bg);color:var(--ok);font-weight:700}
+
+/* 5차시 요청문 */
+.box{border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.box-title{padding:8px 16px;border-bottom:1px solid var(--line);background:var(--bg);font-size:15px;font-weight:700;color:var(--muted)}
+.box-body{padding:12px 16px;white-space:pre-wrap;overflow-wrap:anywhere}
+.ta-label{display:block;margin-bottom:6px;font-weight:700}
+.ta{display:block;width:100%;min-height:80px;padding:10px 12px;border:1px solid var(--soft-line);border-radius:8px;background:#fff;font-size:18px;line-height:1.5;resize:vertical}
+.ta:focus{outline:none;border-color:var(--navy);box-shadow:0 0 0 3px rgba(30,58,95,.18)}
+.toast{display:inline-flex;align-items:center;min-height:32px;padding:3px 10px;border-radius:8px;background:var(--ok-bg);color:var(--ok);font-size:15px;font-weight:700}
+
+/* 아래 안내 */
+.foot{margin:4px 0 32px;font-size:15px;line-height:1.6;color:var(--muted)}
+
+@media (max-width:560px){
+  .tbl-five{font-size:15px}
+  .tbl-five th,.tbl-five td{padding-left:4px;padding-right:4px}
+}
+</style>
+</head>
+<body>
+<header class="masthead">
+  <div class="wrap">
+    <h1>통계 돋보기</h1>
+    <p>1학년 편집국 · 쇼츠 기사 검산 도구</p>
+  </div>
+</header>
+
+<div class="wrap">
+  <nav class="tabs">
+    <a class="tab" href="#1" data-tab="1">1차시 대푯값</a>
+    <a class="tab" href="#2" data-tab="2">2차시 도수분포표</a>
+    <a class="tab" href="#3" data-tab="3">3차시 그래프</a>
+    <a class="tab" href="#4" data-tab="4">4차시 상대도수</a>
+    <a class="tab" href="#5" data-tab="5">5차시 초안 검토</a>
+  </nav>
+
+  <main>
+    <!-- 1차시 대푯값 -->
+    <section class="panel" data-tab="1" hidden>
+      <article class="card">
+        <div class="card-head">
+          <h2>자료</h2>
+          <p class="desc">직접 크기순으로 늘어놓고 세 대푯값을 구한 뒤, 아래에 넣어 확인해요.</p>
+        </div>
+        <div class="cols">
+          <div><h3 class="cls cls-a" id="t1-head-A"></h3><div class="cells" id="t1-cells-A"></div></div>
+          <div><h3 class="cls cls-b" id="t1-head-B"></h3><div class="cells" id="t1-cells-B"></div></div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-head"><h2>① 세 대푯값 확인하기</h2></div>
+        <div class="cols">
+          <div class="t1-check" data-key="A">
+            <h3 class="cls cls-a">A반</h3>
+            <div class="field"><label for="t1-A-mean">평균(분)</label><input class="inp" id="t1-A-mean" data-kind="mean" type="text" inputmode="decimal" autocomplete="off"><span class="badge" aria-live="polite"></span></div>
+            <div class="field"><label for="t1-A-median">중앙값(분)</label><input class="inp" id="t1-A-median" data-kind="median" type="text" inputmode="decimal" autocomplete="off"><span class="badge" aria-live="polite"></span></div>
+            <div class="field"><label for="t1-A-mode">최빈값(분)</label><input class="inp" id="t1-A-mode" data-kind="mode" type="text" inputmode="decimal" autocomplete="off"><span class="badge" aria-live="polite"></span></div>
+            <div class="btns">
+              <button type="button" class="btn btn-primary" data-act="check">확인하기</button>
+              <button type="button" class="btn btn-secondary" data-act="work" aria-expanded="false" aria-controls="t1-A-work">계산 과정 보기</button>
+            </div>
+            <div class="work" id="t1-A-work" hidden></div>
+          </div>
+          <div class="t1-check" data-key="B">
+            <h3 class="cls cls-b">B반</h3>
+            <div class="field"><label for="t1-B-mean">평균(분)</label><input class="inp" id="t1-B-mean" data-kind="mean" type="text" inputmode="decimal" autocomplete="off"><span class="badge" aria-live="polite"></span></div>
+            <div class="field"><label for="t1-B-median">중앙값(분)</label><input class="inp" id="t1-B-median" data-kind="median" type="text" inputmode="decimal" autocomplete="off"><span class="badge" aria-live="polite"></span></div>
+            <div class="field"><label for="t1-B-mode">최빈값(분)</label><input class="inp" id="t1-B-mode" data-kind="mode" type="text" inputmode="decimal" autocomplete="off"><span class="badge" aria-live="polite"></span></div>
+            <div class="btns">
+              <button type="button" class="btn btn-primary" data-act="check">확인하기</button>
+              <button type="button" class="btn btn-secondary" data-act="work" aria-expanded="false" aria-controls="t1-B-work">계산 과정 보기</button>
+            </div>
+            <div class="work" id="t1-B-work" hidden></div>
+          </div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-head">
+          <h2>② 가장 큰 값 바꿔 보기(A반)</h2>
+          <p class="desc" id="t1-change-desc"></p>
+        </div>
+        <div class="seg" role="group" id="t1-change-seg"></div>
+        <div class="chart" id="t1-numline"></div>
+        <div class="tbl-wrap" style="margin-top:12px"><table class="tbl tbl-cmp" id="t1-cmp"></table></div>
+      </article>
+    </section>
+
+    <!-- 2차시 도수분포표 -->
+    <section class="panel" data-tab="2" hidden>
+      <article class="card">
+        <div class="card-head">
+          <h2>① 내가 만든 표 확인하기(A반, 계급의 크기 30분)</h2>
+          <p class="desc">줄기와 잎 그림을 보고 만든 도수분포표의 도수를 넣어 확인해요.</p>
+        </div>
+        <div class="tbl-wrap">
+          <table class="tbl tbl-input">
+            <thead><tr><th scope="col">시청 시간(분)</th><th scope="col">학생 수(명)</th></tr></thead>
+            <tbody id="t2-input-body"></tbody>
+          </table>
+        </div>
+        <div class="btns" style="margin-top:16px">
+          <button type="button" class="btn btn-primary" id="t2-check">확인하기</button>
+          <button type="button" class="btn btn-secondary" id="t2-answer" aria-pressed="false">정답 표 보기</button>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-head"><h2>② 계급의 크기 바꿔 보기</h2></div>
+        <div class="seg" role="group" id="t2-width-seg"></div>
+        <div class="cols" style="margin-top:16px">
+          <div><h3 class="cls cls-a">A반</h3><div class="tbl-wrap"><table class="tbl" id="t2-table-A"></table></div></div>
+          <div><h3 class="cls cls-b">B반</h3><div class="tbl-wrap"><table class="tbl" id="t2-table-B"></table></div></div>
+        </div>
+        <div class="lines" style="margin-top:16px"><p id="t2-line-1"></p><p id="t2-line-2"></p></div>
+      </article>
+    </section>
+
+    <!-- 3차시 그래프 -->
+    <section class="panel" data-tab="3" hidden>
+      <article class="card">
+        <div class="card-head">
+          <h2>① 기사 속 그래프 바로잡기</h2>
+          <p class="desc">기사에 실린 두 반의 히스토그램이에요. 단추를 눌러 바로잡으면 그래프의 인상이 어떻게 달라지는지 비교해 보세요.</p>
+        </div>
+        <div class="btns">
+          <button type="button" class="btn btn-secondary" id="t3-fixy" aria-pressed="false">세로축 맞추기</button>
+          <button type="button" class="btn btn-secondary" id="t3-fill" aria-pressed="false">빈 계급 넣기</button>
+        </div>
+        <div class="cols" style="margin-top:16px">
+          <div><h3 class="cls cls-a chart-title">A반</h3><div class="chart" id="t3-hist-A"></div></div>
+          <div><h3 class="cls cls-b chart-title">B반</h3><div class="chart" id="t3-hist-B"></div></div>
+        </div>
+        <p class="status" id="t3-status"></p>
+      </article>
+
+      <article class="card">
+        <div class="card-head"><h2>② 두 반 겹쳐 보기(도수분포다각형)</h2></div>
+        <div class="btns"><button type="button" class="btn btn-secondary" id="t3-hist" aria-pressed="false">히스토그램도 함께 보기</button></div>
+        <div class="chart" id="t3-poly" style="margin-top:12px"></div>
+        <p class="note" id="t3-poly-note"></p>
+      </article>
+    </section>
+
+    <!-- 4차시 상대도수 -->
+    <section class="panel" data-tab="4" hidden>
+      <article class="card">
+        <div class="card-head">
+          <h2>① 상대도수 확인하기</h2>
+          <p class="desc">상대도수 = (그 계급의 도수) ÷ (도수의 총합). 처음 두 계급의 상대도수를 구해 넣어 보세요.</p>
+        </div>
+        <div class="cols">
+          <div class="t4-check" data-key="A"><h3 class="cls cls-a" data-role="head"></h3><div data-role="fields"></div><div class="btns"><button type="button" class="btn btn-primary" data-act="check">확인하기</button></div></div>
+          <div class="t4-check" data-key="B"><h3 class="cls cls-b" data-role="head"></h3><div data-role="fields"></div><div class="btns"><button type="button" class="btn btn-primary" data-act="check">확인하기</button></div></div>
+        </div>
+        <div class="btns" style="margin-top:20px"><button type="button" class="btn btn-secondary" id="t4-full-btn" aria-expanded="false" aria-controls="t4-full">전체 표 보기</button></div>
+        <div class="tbl-wrap" id="t4-full" style="margin-top:16px" hidden><table class="tbl tbl-five" id="t4-full-table"></table></div>
+      </article>
+
+      <article class="card">
+        <div class="card-head"><h2>② 상대도수 분포다각형</h2></div>
+        <div class="chart" id="t4-poly"></div>
+      </article>
+
+      <article class="card" id="t4-criteria-card">
+        <div class="card-head"><h2>③ 기준 바꿔 보기</h2></div>
+        <div class="seg" role="group" id="t4-crit-seg"></div>
+        <div class="cols" style="margin-top:16px">
+          <p class="result result-A" id="t4-res-A"></p>
+          <p class="result result-B" id="t4-res-B"></p>
+        </div>
+        <div class="chart" id="t4-hbar" style="margin-top:12px"></div>
+        <div class="lines" style="margin-top:12px"><p id="t4-line-count"></p><p id="t4-line-rel"></p></div>
+        <p class="status" id="t4-fixed"></p>
+      </article>
+    </section>
+
+    <!-- 5차시 초안 검토 -->
+    <section class="panel" data-tab="5" hidden>
+      <article class="card">
+        <div class="card-head">
+          <h2>① 초안의 표 다시 세어 보기</h2>
+          <p class="desc">후속 기사 초안에 실린 표예요. 원자료로 다시 세어 초안의 값과 같은지 확인해요.</p>
+        </div>
+        <div class="tbl-wrap"><table class="tbl tbl-five" id="t5-draft"></table></div>
+        <div class="btns" style="margin-top:16px"><button type="button" class="btn btn-primary" id="t5-recount">원자료로 다시 세기</button></div>
+        <p class="okline" id="t5-allsame" hidden></p>
+      </article>
+
+      <article class="card">
+        <div class="card-head"><h2>② 대푯값과 기준별 상대도수</h2></div>
+        <div class="tbl-wrap"><table class="tbl tbl-sum" id="t5-summary"></table></div>
+      </article>
+
+      <article class="card">
+        <div class="card-head">
+          <h2>③ Gemini에 보낼 요청문 만들기</h2>
+          <p class="desc">처음 요청문에 우리 모둠이 정한 조건 두 개를 더해 요청문을 만들고, 복사해서 Gemini에 붙여 넣어요.</p>
+        </div>
+        <div class="stack">
+          <div class="box"><div class="box-title">처음 요청문</div><div class="box-body" id="t5-initial"></div></div>
+          <div><label class="ta-label" for="t5-c1">조건 1</label><textarea class="ta" id="t5-c1" rows="2" placeholder="예: 평균만 쓰지 말고 중앙값도 함께 써 줘."></textarea></div>
+          <div><label class="ta-label" for="t5-c2">조건 2</label><textarea class="ta" id="t5-c2" rows="2" placeholder="예: 60분 기준의 비율도 함께 밝혀 줘."></textarea></div>
+          <div class="box"><div class="box-title">보낼 요청문</div><div class="box-body" id="t5-final"></div></div>
+          <div class="btns"><button type="button" class="btn btn-primary" id="t5-copy">요청문 복사하기</button><span class="toast" id="t5-toast" role="status" hidden>복사했어요</span></div>
+        </div>
+        <p class="note">Gemini가 쓴 기사도 숫자와 기준을 다시 확인해요.</p>
+      </article>
+    </section>
+  </main>
+
+  <footer class="foot" id="foot"></footer>
+</div>
+
+<script id="stat-core">
+/* 계산 모듈: 화면에 나오는 모든 수와 문장은 아래 원자료에서 계산한다. (DOM을 쓰지 않음 — tests/check_values.mjs가 이 블록만 읽어 검사) */
+var StatCore = (function () {
+  'use strict';
+
+  // 원자료(출석번호 순, 단위: 분)
+  var DATA = {
+    A: [38, 156, 20, 7, 64, 29, 175, 12, 45, 20, 88, 23, 186, 34, 15, 102, 41, 20, 167, 49, 18, 75, 26, 118, 32],
+    B: [55, 72, 41, 86, 33, 58, 49, 66, 26, 55, 79, 44, 61, 38, 68, 55, 52, 75, 47, 63]
+  };
+  var KEYS = ['A', 'B'];
+  var WIDTH = 30;                       // 기본 계급의 크기(분)
+  var WIDTHS = [30, 60];                // 2차시 계급의 크기 바꿔 보기
+  var CUT = 60;                         // 비교 기준(분)
+  var CRITERIA = [60, 90, 120];         // 4차시 기준 바꿔 보기
+  var TOL = { mean: 0.051, median: 0, mode: 0, freq: 0, rel: 0.005 };
+  var EPS = 1e-9;
+  var ARTICLE_Y = { A: { max: 10, step: 2 }, B: { max: 20, step: 5 } };  // 기사 속 그래프의 세로축
+  var COMMON_Y_STEP = 2;
+  var NUMLINE = { min: 0, max: 300, step: 50 };
+  var POLY_X = { min: -30, max: 240 };
+  var HBAR_MAX = 0.5;
+
+  // 5차시 '초안의 표'(원문 그대로)
+  var DRAFT = {
+    head: ['계급(분)', 'A반 도수(명)', 'A반 상대도수', 'B반 도수(명)', 'B반 상대도수'],
+    rows: [
+      ['0 이상 30 미만', '10', '0.40', '1', '0.05'],
+      ['30 이상 60 미만', '6', '0.24', '11', '0.55'],
+      ['60 이상 90 미만', '3', '0.12', '8', '0.40'],
+      ['90 이상 120 미만', '2', '0.08', '0', '0.00'],
+      ['120 이상 150 미만', '0', '0.00', '0', '0.00'],
+      ['150 이상 180 미만', '3', '0.12', '0', '0.00'],
+      ['180 이상 210 미만', '1', '0.04', '0', '0.00'],
+      ['합계', '25', '1.00', '20', '1.00']
+    ]
+  };
+
+  function byNum(a, b) { return a - b; }
+  function sorted(arr) { return arr.slice().sort(byNum); }
+  function total(arr) { var s = 0; for (var i = 0; i < arr.length; i++) s += arr[i]; return s; }
+  function maxOf(arr) { return Math.max.apply(null, arr); }
+  function medianOf(arr) {
+    var s = sorted(arr), n = s.length, h = Math.floor(n / 2);
+    return n % 2 ? s[h] : (s[h - 1] + s[h]) / 2;
+  }
+  function modeOf(arr) {
+    var cnt = {}, best = 0;
+    arr.forEach(function (v) { cnt[v] = (cnt[v] || 0) + 1; if (cnt[v] > best) best = cnt[v]; });
+    var vals = Object.keys(cnt).map(Number).filter(function (v) { return cnt[v] === best; }).sort(byNum);
+    return { values: vals, count: best };
+  }
+
+  // num ÷ den 을 소수 dec 자리로 반올림해 글자로 (trim이면 끝의 0을 지움)
+  function fmt(num, den, dec, trim) {
+    var p = Math.pow(10, dec);
+    var q = Math.round(num * p / den);
+    var neg = q < 0;
+    if (neg) q = -q;
+    var ip = Math.floor(q / p), fp = String(q % p);
+    while (fp.length < dec) fp = '0' + fp;
+    if (trim) fp = fp.replace(/0+$/, '');
+    return (neg ? '-' : '') + ip + (dec > 0 && fp ? '.' + fp : '');
+  }
+  function fmtNum(x) { return fmt(x, 1, 2, true); }        // 평균·중앙값: 소수 둘째 자리까지 필요한 만큼
+  function relText(f, n) { return fmt(f, n, 2, false); }    // 상대도수: 항상 소수 둘째 자리
+
+  function stats(k) {
+    var a = DATA[k], s = sorted(a), n = a.length, t = total(a), md = modeOf(a), me = medianOf(a);
+    return {
+      n: n, sorted: s, sum: t, mean: t / n, meanText: fmt(t, n, 2, true),
+      median: me, medianText: fmtNum(me),
+      modes: md.values, mode: md.values[0], modeCount: md.count,
+      max: s[n - 1], min: s[0]
+    };
+  }
+  function classTitle(k) { return k + '반(' + DATA[k].length + '명)'; }
+
+  // ---------- 입력값 판정 ----------
+  function parseNum(raw) {
+    var t = String(raw == null ? '' : raw)
+      .replace(/[０-９]/g, function (ch) { return String.fromCharCode(ch.charCodeAt(0) - 0xFEE0); })
+      .replace(/．/g, '.')
+      .replace(/[,，\s]/g, '');
+    if (t === '') return null;
+    if (!/^[+-]?(\d+(\.\d*)?|\.\d+)$/.test(t)) return NaN;
+    return parseFloat(t);
+  }
+  function judge(raw, truth, kind) {
+    var v = parseNum(raw);
+    if (v === null) return 'empty';
+    if (v !== v) return 'retry';
+    return Math.abs(v - truth) <= TOL[kind] + EPS ? 'ok' : 'retry';
+  }
+
+  // ---------- 1차시 ----------
+  function josaWa(n) {
+    var s = String(n).replace(/[^0-9]/g, ''), d = s.charAt(s.length - 1);
+    return '2459'.indexOf(d) >= 0 ? '와' : '과';
+  }
+  function workLines(k) {
+    var st = stats(k), s = st.sorted, n = st.n, medianPos, median;
+    var mean = '평균 = (' + s[0] + ' + ' + s[1] + ' + … + ' + s[n - 1] + ') ÷ ' + n + ' = ' + st.sum + ' ÷ ' + n + ' = ' + st.meanText + '(분)';
+    if (n % 2) {
+      var m = (n + 1) / 2;
+      medianPos = [m];
+      median = '중앙값: 크기순으로 늘어놓았을 때 ' + m + '번째 값 = ' + st.medianText + '(분)';
+    } else {
+      var h = n / 2;
+      medianPos = [h, h + 1];
+      median = '중앙값: ' + h + '번째 값 ' + s[h - 1] + josaWa(s[h - 1]) + ' ' + (h + 1) + '번째 값 ' + s[h] + '의 평균 = ' + st.medianText + '(분)';
+    }
+    var mode = '최빈값: ' + st.mode + '분이 ' + st.modeCount + '번으로 가장 많아요 = ' + st.mode + '(분)';
+    return { mean: mean, median: median, mode: mode, medianPos: medianPos, modeValue: st.mode, sorted: s };
+  }
+  function changeOptions() { var mx = stats('A').max; return [mx - 100, mx, mx + 100]; }
+  function changeLabel(v) { return v === stats('A').max ? v + '분(원래)' : v + '분으로'; }
+  function changeDesc() {
+    return 'A반에서 가장 많이 본 학생의 시청 시간(' + stats('A').max + '분)을 바꾸면 평균과 중앙값은 어떻게 될까요? 먼저 예상한 뒤 단추를 눌러 보세요.';
+  }
+  function changeMax(newMax) {
+    var a = DATA.A.slice(), idx = a.indexOf(maxOf(a));
+    a[idx] = newMax;
+    var t = total(a), n = a.length, me = medianOf(a);
+    return { values: a, index: idx, sum: t, n: n, mean: t / n, meanText: fmt(t, n, 2, true), median: me, medianText: fmtNum(me) };
+  }
+  function compareTable(newMax) {
+    var mx = stats('A').max, o = changeMax(mx), c = changeMax(newMax);
+    return {
+      head: ['원래(' + mx + '분)', '지금'],
+      rows: [
+        ['변량의 총합', String(o.sum), String(c.sum)],
+        ['학생 수', String(o.n), String(c.n)],
+        ['평균', o.meanText, c.meanText],
+        ['중앙값', o.medianText, c.medianText]
+      ]
+    };
+  }
+  function markerText(name, valueText) { return name + ' ' + valueText; }
+
+  // ---------- 2차시 ----------
+  function classes(width) {
+    var w = width || WIDTH, mx = maxOf(DATA.A.concat(DATA.B)), n = Math.floor(mx / w) + 1, out = [];
+    for (var i = 0; i < n; i++) out.push({ lo: i * w, hi: (i + 1) * w });
+    return out;
+  }
+  function classLabel(c) { return c.lo + ' 이상 ' + c.hi + ' 미만'; }
+  function freqOf(arr, width) {
+    return classes(width).map(function (c) {
+      var f = 0;
+      arr.forEach(function (v) { if (v >= c.lo && v < c.hi) f++; });
+      return f;
+    });
+  }
+  function freq(k, width) { return freqOf(DATA[k], width || WIDTH); }
+  function widthLabel(w) { return w + '분'; }
+  function freqTable(k, width) {
+    var cl = classes(width), f = freq(k, width);
+    return {
+      rows: cl.map(function (c, i) { return { label: classLabel(c), f: f[i], hl: c.lo >= CUT }; }),
+      total: total(f)
+    };
+  }
+  function atLeastInTable(k, width, c) {
+    if (c % width) return null;
+    var cl = classes(width), f = freq(k, width), s = 0;
+    cl.forEach(function (x, i) { if (x.lo >= c) s += f[i]; });
+    return s;
+  }
+  function belowInTable(k, width, c) {
+    if (c % width) return null;
+    var cl = classes(width), f = freq(k, width), s = 0;
+    cl.forEach(function (x, i) { if (x.hi <= c) s += f[i]; });
+    return s;
+  }
+  function summaryLines(width) {
+    var a60 = atLeastInTable('A', width, CUT), b60 = atLeastInTable('B', width, CUT);
+    var a30 = belowInTable('A', width, 30), b30 = belowInTable('B', width, 30);
+    return [
+      CUT + '분 이상: A반 ' + a60 + '명, B반 ' + b60 + '명',
+      (a30 === null || b30 === null) ? '30분 미만인 학생 수는 이 표에서 알 수 없어요.' : '30분 미만: A반 ' + a30 + '명, B반 ' + b30 + '명'
+    ];
+  }
+
+  // ---------- 3차시 ----------
+  function omittedClass() {           // 기사 그래프에서 뺀 계급: A반 안쪽의 도수 0인 계급
+    var f = freq('A', WIDTH);
+    for (var i = 1; i < f.length - 1; i++) if (f[i] === 0) return i;
+    return -1;
+  }
+  function articleY(k) { return { max: ARTICLE_Y[k].max, step: ARTICLE_Y[k].step }; }
+  function commonY() {
+    var mx = maxOf(freq('A', WIDTH).concat(freq('B', WIDTH)));
+    return { max: Math.ceil(mx / COMMON_Y_STEP) * COMMON_Y_STEP, step: COMMON_Y_STEP };
+  }
+  function countTicks(max, step) {
+    var out = [];
+    for (var i = 0; i * step <= max + EPS; i++) out.push({ v: i * step, label: String(i * step) });
+    return out;
+  }
+  function relMaxTenths() {
+    var mx = 0;
+    KEYS.forEach(function (k) { var n = DATA[k].length; freq(k, WIDTH).forEach(function (f) { mx = Math.max(mx, f / n); }); });
+    return Math.ceil(mx * 10 - EPS);
+  }
+  function relTicks(maxTenths) {
+    var out = [], m = maxTenths == null ? relMaxTenths() : maxTenths;
+    for (var i = 0; i <= m; i++) out.push({ v: i / 10, label: i === 0 ? '0' : String(i / 10) });
+    return out;
+  }
+  function statusText(fixY, fillGap) {
+    if (fixY && fillGap) return '세로축을 맞추고 빈 계급도 넣었어요. 이제 두 반을 같은 기준으로 비교할 수 있어요.';
+    if (fixY) return '세로축을 0~' + commonY().max + '명으로 맞췄어요. A반에는 아직 빠진 계급이 있어요.';
+    if (fillGap) return '빠진 계급을 넣었어요. 두 반의 세로축 눈금은 아직 달라요.';
+    var c = classes(WIDTH)[omittedClass()];
+    return '지금은 두 반의 세로축 눈금이 다르고, A반 그래프에는 ' + classLabel(c) + ' 계급이 빠져 있어요.';
+  }
+  // 도수분포다각형의 점: 처음·마지막으로 도수가 있는 계급 사이의 계급값, 양 끝에 도수 0인 계급을 하나씩 더함
+  function polygonPoints(k, rel) {
+    var f = freq(k, WIDTH), n = DATA[k].length, first = -1, last = -1, pts = [];
+    f.forEach(function (x, i) { if (x > 0) { if (first < 0) first = i; last = i; } });
+    function mid(i) { return i * WIDTH + WIDTH / 2; }
+    function val(x) { return rel ? x / n : x; }
+    pts.push([mid(first - 1), 0]);
+    for (var i = first; i <= last; i++) pts.push([mid(i), val(f[i])]);
+    pts.push([mid(last + 1), 0]);
+    return pts;
+  }
+  function polyNote() { return '양 끝 점은 다각형을 가로축에서 닫으려고 도수가 0인 계급을 하나씩 더해 찍은 점이에요.'; }
+
+  // ---------- 4차시 ----------
+  function relTable() {
+    var cl = classes(WIDTH), fa = freq('A', WIDTH), fb = freq('B', WIDTH), na = DATA.A.length, nb = DATA.B.length;
+    return {
+      head: ['시청 시간(분)', 'A반 도수(명)', 'A반 상대도수', 'B반 도수(명)', 'B반 상대도수'],
+      rows: cl.map(function (c, i) { return [classLabel(c), String(fa[i]), relText(fa[i], na), String(fb[i]), relText(fb[i], nb)]; }),
+      sum: ['합계', String(total(fa)), relText(total(fa), na), String(total(fb)), relText(total(fb), nb)]
+    };
+  }
+  function firstTwo(k) {
+    var cl = classes(WIDTH), f = freq(k, WIDTH), n = DATA[k].length;
+    return [0, 1].map(function (i) { return { label: classLabel(cl[i]), rel: f[i] / n, relText: relText(f[i], n) }; });
+  }
+  function criteriaLabel(c) { return c + '분 이상'; }
+  function sign(a, b) { return Math.abs(a - b) <= EPS ? '=' : (a > b ? '>' : '<'); }
+  function criteria(c) {
+    var r = {};
+    KEYS.forEach(function (k) {
+      var n = DATA[k].length, f = DATA[k].filter(function (v) { return v >= c; }).length;
+      r[k] = { f: f, n: n, rel: f / n, relText: relText(f, n) };
+    });
+    var A = r.A, B = r.B;
+    r.boxA = 'A반: ' + A.f + '명 ÷ ' + A.n + '명 = ' + A.relText;
+    r.boxB = 'B반: ' + B.f + '명 ÷ ' + B.n + '명 = ' + B.relText;
+    r.countLine = '학생 수로 보면: A반 ' + A.f + '명 ' + sign(A.f, B.f) + ' B반 ' + B.f + '명';
+    r.relLine = '상대도수로 보면: A반 ' + A.relText + ' ' + sign(A.f * B.n, B.f * A.n) + ' B반 ' + B.relText;
+    return r;
+  }
+  function criteriaNote() { return '기준을 바꾸면 비교 결과가 달라질 수 있어요. 기사에는 어떤 기준으로 비교했는지 밝혀야 해요.'; }
+
+  // ---------- 5차시 ----------
+  function recountDraft() {
+    var t = relTable(), again = t.rows.concat([t.sum]);
+    var rows = DRAFT.rows.map(function (dr, i) {
+      return {
+        label: dr[0],
+        labelSame: dr[0] === again[i][0],
+        cells: [1, 2, 3, 4].map(function (j) { return { draft: dr[j], again: again[i][j], same: dr[j] === again[i][j] }; })
+      };
+    });
+    var all = rows.length === again.length && rows.every(function (r) { return r.labelSame && r.cells.every(function (c) { return c.same; }); });
+    return { rows: rows, allSame: all, message: all ? '모든 칸이 같아요. 표의 숫자는 맞습니다.' : '' };
+  }
+  function summaryTable() {
+    var a = stats('A'), b = stats('B'), c60 = criteria(60), c90 = criteria(90);
+    return {
+      head: ['구분', 'A반', 'B반'],
+      rows: [
+        ['평균(분)', a.meanText, b.meanText],
+        ['중앙값(분)', a.medianText, b.medianText],
+        [criteriaLabel(60) + ' 상대도수', c60.A.relText, c60.B.relText],
+        [criteriaLabel(90) + ' 상대도수', c90.A.relText, c90.B.relText]
+      ]
+    };
+  }
+  function initialPrompt() {
+    var a = stats('A'), b = stats('B');
+    return [
+      '아래는 1학년 A반 ' + a.n + '명, B반 ' + b.n + '명의 어제 하루 쇼츠 시청 시간(분)이야.',
+      'A반: ' + a.sorted.join(', '),
+      'B반: ' + b.sorted.join(', '),
+      '계급의 크기를 ' + WIDTH + '분으로 해서 두 반의 도수분포표와 상대도수를 표로 만들고, 두 반을 비교하는 학교 신문 기사를 400자 정도로 써 줘. A반이 쇼츠에 더 빠져 있다는 내용으로 제목도 붙여 줘.'
+    ].join('\n');
+  }
+  function composePrompt(c1, c2) {
+    var conds = [c1, c2].map(function (c) { return String(c == null ? '' : c).trim(); }).filter(function (c) { return c !== ''; });
+    var t = initialPrompt();
+    if (!conds.length) return t;
+    return t + '\n\n다음 조건을 꼭 지켜 줘.\n' + conds.map(function (c, i) { return (i + 1) + '. ' + c; }).join('\n');
+  }
+  function footerText() {
+    return '수업용 가상 자료: ○○중학교 1학년 A반 ' + DATA.A.length + '명, B반 ' + DATA.B.length + '명의 어제 하루 쇼츠 시청 시간(분)입니다. 실제 조사 자료가 아니며, ' + CUT + '분은 비교를 위해 정한 기준일 뿐 건강·중독의 기준이 아닙니다.';
+  }
+
+  return {
+    DATA: DATA, KEYS: KEYS, WIDTH: WIDTH, WIDTHS: WIDTHS, CUT: CUT, CRITERIA: CRITERIA, TOL: TOL,
+    NUMLINE: NUMLINE, POLY_X: POLY_X, HBAR_MAX: HBAR_MAX, DRAFT: DRAFT,
+    sorted: sorted, total: total, fmt: fmt, fmtNum: fmtNum, relText: relText,
+    stats: stats, classTitle: classTitle, parseNum: parseNum, judge: judge,
+    workLines: workLines, josaWa: josaWa, changeOptions: changeOptions, changeLabel: changeLabel, changeDesc: changeDesc,
+    changeMax: changeMax, compareTable: compareTable, markerText: markerText,
+    classes: classes, classLabel: classLabel, freq: freq, widthLabel: widthLabel, freqTable: freqTable,
+    atLeastInTable: atLeastInTable, belowInTable: belowInTable, summaryLines: summaryLines,
+    omittedClass: omittedClass, articleY: articleY, commonY: commonY, countTicks: countTicks, relTicks: relTicks,
+    statusText: statusText, polygonPoints: polygonPoints, polyNote: polyNote,
+    relTable: relTable, firstTwo: firstTwo, criteriaLabel: criteriaLabel, criteria: criteria, criteriaNote: criteriaNote,
+    recountDraft: recountDraft, summaryTable: summaryTable, initialPrompt: initialPrompt, composePrompt: composePrompt,
+    footerText: footerText
+  };
+})();
+</script>
+
+<script>
+(function () {
+  'use strict';
+  var C = window.StatCore;
+  var COL = { A: '#E07B39', B: '#3B7DC9', axis: '#374151', grid: '#E5E7EB', navy: '#1E3A5F', ok: '#15803D', text: '#1F2937' };
+  var BADGE = { ok: '✓ 맞아요', retry: '↻ 다시 구해 봐요', empty: '값을 넣어 주세요' };
+  var DUR = 400;
+  var SHOT = (function () { try { return new URLSearchParams(location.search).get('shot') || ''; } catch (e) { return ''; } })();
+  var SVGNS = 'http://www.w3.org/2000/svg';
+
+  function $(sel, root) { return (root || document).querySelector(sel); }
+  function $$(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+  function h(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function sv(tag, attrs, parent) {
+    var e = document.createElementNS(SVGNS, tag);
+    if (attrs) for (var k in attrs) e.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  function stext(attrs, parent, s) { var e = sv('text', attrs, parent); e.textContent = s; return e; }
+  function textWidth(e, fallback) { try { return e.getComputedTextLength() || fallback; } catch (err) { return fallback; } }
+  function snap(v) { return Math.round(v - 0.5) + 0.5; }
+
+  // ---------- 0.4초 ease 전환 ----------
+  function cubicBezier(p1x, p1y, p2x, p2y) {
+    var cx = 3 * p1x, bx = 3 * (p2x - p1x) - cx, ax = 1 - cx - bx;
+    var cy = 3 * p1y, by = 3 * (p2y - p1y) - cy, ay = 1 - cy - by;
+    function sx(t) { return ((ax * t + bx) * t + cx) * t; }
+    function sy(t) { return ((ay * t + by) * t + cy) * t; }
+    function dx(t) { return (3 * ax * t + 2 * bx) * t + cx; }
+    function solve(x) {
+      var t = x, i;
+      for (i = 0; i < 8; i++) { var e = sx(t) - x; if (Math.abs(e) < 1e-6) return t; var d = dx(t); if (Math.abs(d) < 1e-6) break; t -= e / d; }
+      var lo = 0, hi = 1; t = x;
+      while (hi - lo > 1e-6) { var v = sx(t); if (Math.abs(v - x) < 1e-6) return t; if (x > v) lo = t; else hi = t; t = (lo + hi) / 2; }
+      return t;
+    }
+    return function (x) { return x <= 0 ? 0 : x >= 1 ? 1 : sy(solve(x)); };
+  }
+  var EASE = cubicBezier(0.25, 0.1, 0.25, 1);
+  var running = new WeakMap();
+  function r3(v) { return Math.round(v * 1000) / 1000; }
+  function setv(e, v) {
+    var st = e.__v || (e.__v = {});
+    for (var k in v) { st[k] = v[k]; if (k !== 'tx' && k !== 'ty') e.setAttribute(k, r3(v[k])); }
+    if ('tx' in v || 'ty' in v) e.setAttribute('transform', 'translate(' + r3(st.tx || 0) + ',' + r3(st.ty || 0) + ')');
+  }
+  function tween(e, to, animate, done) {
+    var prev = running.get(e);
+    if (prev) { cancelAnimationFrame(prev); running.delete(e); }
+    var st = e.__v || {}, from = {}, need = false, k;
+    for (k in to) { from[k] = (k in st) ? st[k] : to[k]; if (from[k] !== to[k]) need = true; }
+    if (!animate || !need) { setv(e, to); if (done) done(); return; }
+    var t0 = null;
+    function step(now) {
+      if (t0 === null) t0 = now;
+      var p = Math.min(1, (now - t0) / DUR), q = EASE(p), v = {};
+      for (var key in to) v[key] = from[key] + (to[key] - from[key]) * q;
+      setv(e, v);
+      if (p < 1) running.set(e, requestAnimationFrame(step));
+      else { running.delete(e); if (done) done(); }
+    }
+    running.set(e, requestAnimationFrame(step));
+  }
+
+  function setBadge(b, state) { b.className = 'badge' + (state ? ' ' + state : ''); b.textContent = state ? BADGE[state] : ''; }
+  function pressed(btn, on) { btn.setAttribute('aria-pressed', on ? 'true' : 'false'); }
+  function segment(box, items, current, onPick) {
+    box.textContent = '';
+    var btns = items.map(function (it) {
+      var b = h('button', '', it.label);
+      b.type = 'button';
+      pressed(b, it.value === current);
+      b.addEventListener('click', function () {
+        btns.forEach(function (x) { pressed(x, x === b); });
+        onPick(it.value);
+      });
+      box.appendChild(b);
+      return b;
+    });
+    return btns;
+  }
+  function fillTable(tbl, head, rows, opts) {
+    opts = opts || {};
+    tbl.textContent = '';
+    if (head) {
+      var thead = h('thead'), tr = h('tr');
+      head.forEach(function (t) { var th = h('th', '', t); th.scope = 'col'; tr.appendChild(th); });
+      thead.appendChild(tr); tbl.appendChild(thead);
+    }
+    var tb = h('tbody');
+    rows.forEach(function (r) {
+      var tr = h('tr', r.cls || '');
+      r.cells.forEach(function (c, j) {
+        var td = h(j === 0 && opts.rowHead ? 'th' : 'td', '', c);
+        if (j === 0 && opts.rowHead) td.scope = 'row';
+        tr.appendChild(td);
+      });
+      tb.appendChild(tr);
+    });
+    tbl.appendChild(tb);
+    return tb;
+  }
+
+  // ---------- 그래프 공통 ----------
+  function newSvg(box, title) {
+    var svg = sv('svg', { role: 'img' });
+    sv('title', {}, svg).textContent = title;
+    box.appendChild(svg);
+    return svg;
+  }
+
+  // 히스토그램(3차시 ①)
+  function Histogram(box, key, title) {
+    var svg = newSvg(box, title);
+    var gGrid = sv('g', {}, svg), gBars = sv('g', {}, svg), gXT = sv('g', {}, svg), gAxis = sv('g', {}, svg), gXL = sv('g', {}, svg), gBreak = sv('g', {}, svg);
+    sv('path', { d: 'M-3.5,10 C1.5,4 -8.5,-3 -3.5,-9 L3.5,-9 C-1.5,-3 8.5,4 3.5,10 Z', fill: '#FFFFFF' }, gBreak);
+    sv('path', { d: 'M-3.5,10 C1.5,4 -8.5,-3 -3.5,-9 M3.5,10 C8.5,4 -1.5,-3 3.5,-9', fill: 'none', stroke: COL.axis, 'stroke-width': 1.5, 'stroke-linecap': 'round' }, gBreak);
+    setv(gBreak, { tx: 0, ty: 0, opacity: 0 });
+    var xAxis = sv('line', { stroke: COL.axis, 'stroke-width': 1.5 }, gAxis), yAxis = sv('line', { stroke: COL.axis, 'stroke-width': 1.5 }, gAxis);
+    var unitY = stext({ 'font-size': 15, fill: COL.axis }, svg, '(명)'), unitX = stext({ 'font-size': 15, fill: COL.axis }, svg, '(분)');
+    var cls = C.classes(C.WIDTH), freqs = C.freq(key, C.WIDTH), omit = C.omittedClass();
+    var bars = freqs.map(function () { return sv('rect', { fill: COL[key], 'fill-opacity': 0.85, stroke: COL.axis, 'stroke-width': 1 }, gBars); });
+    var yT = {}, xL = {}, prev = null, lastW = 0;
+    var bounds = cls.map(function (c) { return c.lo; }).concat([cls[cls.length - 1].hi]);
+
+    function draw(st, animate) {
+      var W = Math.round(box.clientWidth);
+      if (!W) return;
+      if (W !== lastW) { animate = false; lastW = W; }
+      var narrow = W < 420, H = narrow ? 260 : 290;
+      var m = { l: narrow ? 34 : 44, r: narrow ? 14 : 56, t: 34, b: narrow ? 62 : 40 };
+      svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+      var x0 = m.l + 0.5, x1 = W - m.r + 0.5, y0 = H - m.b + 0.5, y1 = m.t + 0.5, ymax = st.y.max;
+      function ys(v) { return y0 - v / ymax * (y0 - y1); }
+      var p = prev;
+      function pys(v) { return p ? p.y0 - v / p.max * (p.y0 - p.y1) : ys(v); }
+      var broken = !!st.broken, vis = [], i;
+      for (i = 0; i < cls.length; i++) if (!(broken && i === omit)) vis.push(i);
+      var sw = (x1 - x0) / vis.length, px = {};
+      vis.forEach(function (ci, si) { px[ci] = x0 + si * sw; });
+      if (broken) px[omit] = px[omit + 1];
+      function bx(v) { for (var j = 0; j < cls.length; j++) if (cls[j].lo === v) return px[j]; return x1; }
+
+      // 막대(붙여 그림)
+      cls.forEach(function (c, j) {
+        var xl = snap(px[j]), xr = (broken && j === omit) ? xl : snap(j === cls.length - 1 ? x1 : bx(cls[j].hi));
+        var y = freqs[j] ? snap(ys(freqs[j])) : y0;
+        tween(bars[j], { x: xl, width: Math.max(0, xr - xl), y: y, height: Math.max(0, y0 - y) }, animate);
+      });
+
+      // 세로축 눈금과 보조 눈금선
+      var seen = {};
+      C.countTicks(st.y.max, st.y.step).forEach(function (t) {
+        seen[t.label] = 1;
+        var o = yT[t.label];
+        if (!o) {
+          o = yT[t.label] = { v: t.v, g: sv('g', {}, gGrid) };
+          if (t.v !== 0) o.grid = sv('line', { y1: 0, y2: 0, stroke: COL.grid, 'stroke-width': 1 }, o.g);
+          o.mark = sv('line', { y1: 0, y2: 0, stroke: COL.axis, 'stroke-width': 1 }, o.g);
+          o.text = stext({ 'font-size': 15, fill: COL.axis, 'text-anchor': 'end', dy: '0.35em' }, o.g, t.label);
+          setv(o.g, { tx: 0, ty: snap(pys(t.v)), opacity: animate ? 0 : 1 });
+        }
+        if (o.grid) { o.grid.setAttribute('x1', x0); o.grid.setAttribute('x2', x1); }
+        o.mark.setAttribute('x1', x0 - 5); o.mark.setAttribute('x2', x0);
+        o.text.setAttribute('x', x0 - 9);
+        tween(o.g, { ty: snap(ys(t.v)), opacity: 1 }, animate);
+        gGrid.appendChild(o.g);
+      });
+      Object.keys(yT).forEach(function (lab) {
+        if (seen[lab]) return;
+        var o = yT[lab]; delete yT[lab];
+        tween(o.g, { ty: snap(ys(o.v)), opacity: 0 }, animate, function () { if (o.g.parentNode) o.g.parentNode.removeChild(o.g); });
+      });
+
+      // 가로축 눈금: 계급의 양 끝 값
+      bounds.forEach(function (v) {
+        var o = xL[v];
+        if (!o) {
+          o = xL[v] = { mark: sv('line', { x1: 0, x2: 0, stroke: COL.axis, 'stroke-width': 1 }, gXT), text: stext({ 'font-size': 15, fill: COL.axis, 'text-anchor': 'middle' }, gXL, String(v)) };
+        }
+        o.mark.setAttribute('y1', y0); o.mark.setAttribute('y2', y0 + 6);
+        o.text.setAttribute('y', y0 + 22);
+        var x = snap(bx(v)), tx = x, op = 1;
+        if (broken && (v === cls[omit].lo || v === cls[omit].hi)) {
+          var w = textWidth(o.text, 26), gap = narrow ? 2 : 5;
+          tx = v === cls[omit].lo ? x - gap - w / 2 : x + gap + w / 2;
+          op = 0;
+        }
+        tween(o.mark, { tx: x, opacity: op }, animate);
+        tween(o.text, { x: tx }, animate);
+      });
+
+      // 축
+      xAxis.setAttribute('x1', x0); xAxis.setAttribute('x2', x1); xAxis.setAttribute('y1', y0); xAxis.setAttribute('y2', y0);
+      yAxis.setAttribute('x1', x0); yAxis.setAttribute('x2', x0); yAxis.setAttribute('y1', y1); yAxis.setAttribute('y2', y0);
+      // 물결선 생략 표시
+      if (broken) setv(gBreak, { tx: snap(px[omit]), ty: y0 });
+      tween(gBreak, { opacity: broken ? 1 : 0 }, animate);
+      // 단위
+      unitY.setAttribute('x', 2); unitY.setAttribute('y', y1 - 16);
+      if (narrow) { unitX.setAttribute('x', x1); unitX.setAttribute('y', y0 + 46); unitX.setAttribute('text-anchor', 'end'); }
+      else { unitX.setAttribute('x', x1 + 20); unitX.setAttribute('y', y0 + 22); unitX.setAttribute('text-anchor', 'start'); }
+      prev = { y0: y0, y1: y1, max: ymax };
+    }
+    return { draw: draw };
+  }
+
+  // 도수분포다각형 / 상대도수 분포다각형(3차시 ②, 4차시 ②)
+  function Polygon(box, opt) {
+    var rel = !!opt.rel;
+    var svg = newSvg(box, opt.title);
+    var gGrid = sv('g', {}, svg), gHist = sv('g', {}, svg), gXT = sv('g', {}, svg), gAxis = sv('g', {}, svg), gLines = sv('g', {}, svg), gLegend = sv('g', {}, svg);
+    setv(gHist, { opacity: 0 });
+    var xAxis = sv('line', { stroke: COL.axis, 'stroke-width': 1.5 }, gAxis), yAxis = sv('line', { stroke: COL.axis, 'stroke-width': 1.5 }, gAxis);
+    var unitY = stext({ 'font-size': 15, fill: COL.axis }, svg, rel ? '상대도수' : '(명)'), unitX = stext({ 'font-size': 15, fill: COL.axis }, svg, '(분)');
+    var cls = C.classes(C.WIDTH), X = C.POLY_X;
+    var ticks = rel ? C.relTicks() : C.countTicks(C.commonY().max, C.commonY().step), ymax = ticks[ticks.length - 1].v;
+    var series = C.KEYS.map(function (k) {
+      var f = C.freq(k, C.WIDTH), n = C.stats(k).n;
+      var s = { k: k, pts: C.polygonPoints(k, rel), hv: f.map(function (x) { return rel ? x / n : x; }) };
+      s.hist = cls.map(function () { return sv('rect', { fill: COL[k], 'fill-opacity': 0.25 }, gHist); });
+      s.path = sv('path', { fill: 'none', stroke: COL[k], 'stroke-width': 3, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }, gLines);
+      s.dots = s.pts.map(function () { return sv('circle', { r: 4.5, fill: COL[k] }, gLines); });
+      s.lgLine = sv('line', { stroke: COL[k], 'stroke-width': 3, 'stroke-linecap': 'round' }, gLegend);
+      s.lgDot = sv('circle', { r: 4.5, fill: COL[k] }, gLegend);
+      s.lgText = stext({ 'font-size': 15, fill: COL.text }, gLegend, C.classTitle(k));
+      return s;
+    });
+    var yEls = ticks.map(function (t) {
+      return {
+        t: t,
+        grid: t.v !== 0 ? sv('line', { stroke: COL.grid, 'stroke-width': 1 }, gGrid) : null,
+        mark: sv('line', { stroke: COL.axis, 'stroke-width': 1 }, gGrid),
+        text: stext({ 'font-size': 15, fill: COL.axis, 'text-anchor': 'end', dy: '0.35em' }, gGrid, t.label)
+      };
+    });
+    var xVals = cls.map(function (c) { return c.lo; }).concat([cls[cls.length - 1].hi]);
+    var xEls = xVals.map(function (v) {
+      return { v: v, mark: sv('line', { stroke: COL.axis, 'stroke-width': 1 }, gXT), text: stext({ 'font-size': 15, fill: COL.axis, 'text-anchor': 'middle' }, gXT, String(v)) };
+    });
+
+    function draw(st, animate) {
+      var W = Math.round(box.clientWidth);
+      if (!W) return;
+      var narrow = W < 600, H = narrow ? 300 : 340;
+      var m = { l: (rel ? 48 : 44) - (narrow ? 10 : 0), r: narrow ? 6 : 44, t: 40, b: narrow ? 62 : 40 };
+      svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+      var x0 = m.l + 0.5, x1 = W - m.r + 0.5, y0 = H - m.b + 0.5, y1 = m.t + 0.5;
+      function xs(v) { return x0 + (v - X.min) / (X.max - X.min) * (x1 - x0); }
+      function ys(v) { return y0 - v / ymax * (y0 - y1); }
+      yEls.forEach(function (o) {
+        var y = snap(ys(o.t.v));
+        if (o.grid) { o.grid.setAttribute('x1', x0); o.grid.setAttribute('x2', x1); o.grid.setAttribute('y1', y); o.grid.setAttribute('y2', y); }
+        o.mark.setAttribute('x1', x0 - 5); o.mark.setAttribute('x2', x0); o.mark.setAttribute('y1', y); o.mark.setAttribute('y2', y);
+        o.text.setAttribute('x', x0 - 9); o.text.setAttribute('y', y);
+      });
+      xEls.forEach(function (o) {
+        var x = snap(xs(o.v));
+        o.mark.setAttribute('x1', x); o.mark.setAttribute('x2', x); o.mark.setAttribute('y1', y0); o.mark.setAttribute('y2', y0 + 6);
+        o.text.setAttribute('x', x); o.text.setAttribute('y', y0 + 22);
+      });
+      xAxis.setAttribute('x1', x0); xAxis.setAttribute('x2', x1); xAxis.setAttribute('y1', y0); xAxis.setAttribute('y2', y0);
+      yAxis.setAttribute('x1', x0); yAxis.setAttribute('x2', x0); yAxis.setAttribute('y1', y1); yAxis.setAttribute('y2', y0);
+      unitY.setAttribute('x', 2); unitY.setAttribute('y', y1 - 18);
+      if (narrow) { unitX.setAttribute('x', x1); unitX.setAttribute('y', y0 + 46); unitX.setAttribute('text-anchor', 'end'); }
+      else { unitX.setAttribute('x', x1 + 8); unitX.setAttribute('y', y0 + 22); unitX.setAttribute('text-anchor', 'start'); }
+
+      var lgW = 0;
+      series.forEach(function (s) {
+        s.hist.forEach(function (r, j) {
+          var xl = snap(xs(cls[j].lo)), xr = snap(xs(cls[j].hi)), y = s.hv[j] ? ys(s.hv[j]) : y0;
+          r.setAttribute('x', xl); r.setAttribute('width', xr - xl); r.setAttribute('y', y); r.setAttribute('height', Math.max(0, y0 - y));
+        });
+        s.path.setAttribute('d', 'M' + s.pts.map(function (pt) { return r3(xs(pt[0])) + ',' + r3(ys(pt[1])); }).join('L'));
+        s.dots.forEach(function (c, j) { c.setAttribute('cx', r3(xs(s.pts[j][0]))); c.setAttribute('cy', r3(ys(s.pts[j][1]))); });
+        lgW = Math.max(lgW, textWidth(s.lgText, 80));
+      });
+      var lx = x1 - 34 - lgW - 6;
+      series.forEach(function (s, j) {
+        var y = y1 + 14 + j * 28;
+        s.lgLine.setAttribute('x1', lx); s.lgLine.setAttribute('x2', lx + 24); s.lgLine.setAttribute('y1', y); s.lgLine.setAttribute('y2', y);
+        s.lgDot.setAttribute('cx', lx + 12); s.lgDot.setAttribute('cy', y);
+        s.lgText.setAttribute('x', lx + 34); s.lgText.setAttribute('y', y); s.lgText.setAttribute('dy', '0.35em');
+      });
+      tween(gHist, { opacity: st && st.hist ? 1 : 0 }, animate);
+    }
+    return { draw: draw };
+  }
+
+  // 수직선 그래프(1차시 ②)
+  function NumberLine(box) {
+    var svg = newSvg(box, '수직선 그래프');
+    var N = C.NUMLINE;
+    var gAxis = sv('g', {}, svg), gDots = sv('g', {}, svg), gMark = sv('g', {}, svg);
+    var axis = sv('line', { stroke: COL.axis, 'stroke-width': 1.5 }, gAxis);
+    var unit = stext({ 'font-size': 15, fill: COL.axis }, gAxis, '(분)');
+    var ticks = [];
+    for (var v = N.min; v <= N.max; v += N.step) {
+      ticks.push({ v: v, mark: sv('line', { stroke: COL.axis, 'stroke-width': 1 }, gAxis), text: stext({ 'font-size': 15, fill: COL.axis, 'text-anchor': 'middle' }, gAxis, String(v)) });
+    }
+    var meanG = sv('g', {}, gMark), medG = sv('g', {}, gMark);
+    var meanGuide = sv('line', { stroke: COL.navy, 'stroke-width': 1, 'stroke-dasharray': '3 3', 'stroke-opacity': 0.55 }, meanG);
+    sv('path', { d: 'M-7,-12 L7,-12 L0,0 Z', fill: COL.navy }, meanG);
+    var meanTxt = stext({ x: 11, y: -2, 'font-size': 15, 'font-weight': 700, fill: COL.navy }, meanG, '');
+    var medGuide = sv('line', { stroke: COL.ok, 'stroke-width': 1, 'stroke-dasharray': '3 3', 'stroke-opacity': 0.6 }, medG);
+    sv('path', { d: 'M-7,12 L7,12 L0,0 Z', fill: COL.ok }, medG);
+    var medTxt = stext({ x: 11, y: 11, 'font-size': 15, 'font-weight': 700, fill: COL.ok }, medG, '');
+    var dots = C.DATA.A.map(function () { return sv('circle', { r: 6.75, fill: COL.A, stroke: '#FFFFFF', 'stroke-width': 1.5 }, gDots); });
+    var ring = sv('circle', { r: 10, fill: 'none', stroke: COL.navy, 'stroke-width': 2.5 }, gDots);
+    var lastW = 0;
+
+    function draw(st, animate) {
+      var W = Math.round(box.clientWidth);
+      if (!W) return;
+      if (W !== lastW) { animate = false; lastW = W; }
+      var H = 152, x0 = 16.5, x1 = W - 56 + 0.5, ay = 96.5, medY = ay + 34;
+      svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+      function xs(val) { return x0 + (val - N.min) / (N.max - N.min) * (x1 - x0); }
+      axis.setAttribute('x1', x0); axis.setAttribute('x2', x1); axis.setAttribute('y1', ay); axis.setAttribute('y2', ay);
+      ticks.forEach(function (t) {
+        var x = snap(xs(t.v));
+        t.mark.setAttribute('x1', x); t.mark.setAttribute('x2', x); t.mark.setAttribute('y1', ay); t.mark.setAttribute('y2', ay + 6);
+        t.text.setAttribute('x', x); t.text.setAttribute('y', ay + 22);
+      });
+      unit.setAttribute('x', x1 + 20); unit.setAttribute('y', ay + 22);
+      var level = {};
+      st.values.forEach(function (val, i) {
+        var lv = level[val] || 0; level[val] = lv + 1;
+        var to = { cx: xs(val), cy: ay - 8 - lv * 13.5 };
+        tween(dots[i], to, animate);
+        if (i === st.index) tween(ring, to, animate);
+      });
+      meanGuide.setAttribute('x1', 0); meanGuide.setAttribute('x2', 0); meanGuide.setAttribute('y1', 2); meanGuide.setAttribute('y2', ay - 38);
+      medGuide.setAttribute('x1', 0); medGuide.setAttribute('x2', 0); medGuide.setAttribute('y1', -2); medGuide.setAttribute('y2', -(medY - ay - 4));
+      meanTxt.textContent = C.markerText('평균', st.meanText);
+      medTxt.textContent = C.markerText('중앙값', st.medianText);
+      tween(meanG, { tx: xs(st.mean), ty: 38 }, animate);
+      tween(medG, { tx: xs(st.median), ty: medY }, animate);
+    }
+    return { draw: draw };
+  }
+
+  // 가로 막대(4차시 ③)
+  function HBar(box) {
+    var svg = newSvg(box, '상대도수 가로 막대');
+    var MAX = C.HBAR_MAX, gGrid = sv('g', {}, svg), gBars = sv('g', {}, svg), gAxis = sv('g', {}, svg);
+    var ticks = [];
+    for (var i = 0; i <= Math.round(MAX * 10); i++) {
+      ticks.push({ v: i / 10, grid: i ? sv('line', { stroke: COL.grid, 'stroke-width': 1 }, gGrid) : null, mark: sv('line', { stroke: COL.axis, 'stroke-width': 1 }, gAxis), text: stext({ 'font-size': 15, fill: COL.axis, 'text-anchor': 'middle' }, gAxis, i ? String(i / 10) : '0') });
+    }
+    var xAxis = sv('line', { stroke: COL.axis, 'stroke-width': 1.5 }, gAxis), yAxis = sv('line', { stroke: COL.axis, 'stroke-width': 1.5 }, gAxis);
+    var rows = C.KEYS.map(function (k) {
+      return { k: k, label: stext({ 'font-size': 17, 'font-weight': 700, fill: COL[k], 'text-anchor': 'end', dy: '0.35em' }, gAxis, k + '반'), bar: sv('rect', { fill: COL[k], 'fill-opacity': 0.85 }, gBars) };
+    });
+    var lastW = 0;
+    function draw(st, animate) {
+      var W = Math.round(box.clientWidth);
+      if (!W) return;
+      if (W !== lastW) { animate = false; lastW = W; }
+      var H = 140, x0 = 56.5, x1 = W - 24 + 0.5, top = 10.5, ay = 108.5, bh = 30;
+      svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+      function xs(v) { return x0 + v / MAX * (x1 - x0); }
+      ticks.forEach(function (t) {
+        var x = snap(xs(t.v));
+        if (t.grid) { t.grid.setAttribute('x1', x); t.grid.setAttribute('x2', x); t.grid.setAttribute('y1', top); t.grid.setAttribute('y2', ay); }
+        t.mark.setAttribute('x1', x); t.mark.setAttribute('x2', x); t.mark.setAttribute('y1', ay); t.mark.setAttribute('y2', ay + 6);
+        t.text.setAttribute('x', x); t.text.setAttribute('y', ay + 24);
+      });
+      xAxis.setAttribute('x1', x0); xAxis.setAttribute('x2', x1); xAxis.setAttribute('y1', ay); xAxis.setAttribute('y2', ay);
+      yAxis.setAttribute('x1', x0); yAxis.setAttribute('x2', x0); yAxis.setAttribute('y1', top); yAxis.setAttribute('y2', ay);
+      rows.forEach(function (r, j) {
+        var cy = top + 24 + j * 46;
+        r.label.setAttribute('x', x0 - 12); r.label.setAttribute('y', cy);
+        tween(r.bar, { x: x0, y: cy - bh / 2, height: bh, width: Math.max(0, xs(st[r.k]) - x0) }, animate);
+      });
+    }
+    return { draw: draw };
+  }
+
+  // ---------- 탭 ----------
+  var drawers = { 1: [], 2: [], 3: [], 4: [], 5: [] };
+  function redraw(tab, animate) { drawers[tab].forEach(function (fn) { fn(animate); }); }
+
+  // 1차시
+  function initTab1() {
+    C.KEYS.forEach(function (k) {
+      $('#t1-head-' + k).textContent = C.classTitle(k);
+      var box = $('#t1-cells-' + k);
+      C.DATA[k].forEach(function (v, i) {
+        var c = h('div', 'cell');
+        c.appendChild(h('span', 'no', String(i + 1)));
+        c.appendChild(h('span', 'v', String(v)));
+        box.appendChild(c);
+      });
+    });
+
+    $$('.t1-check').forEach(function (col) {
+      var k = col.getAttribute('data-key'), st = C.stats(k), truth = { mean: st.mean, median: st.median, mode: st.mode };
+      var inputs = $$('input', col), work = $('.work', col), btnWork = $('[data-act="work"]', col);
+      inputs.forEach(function (inp) { inp.addEventListener('input', function () { setBadge(inp.nextElementSibling, null); }); });
+      $('[data-act="check"]', col).addEventListener('click', function () {
+        inputs.forEach(function (inp) { var kind = inp.getAttribute('data-kind'); setBadge(inp.nextElementSibling, C.judge(inp.value, truth[kind], kind)); });
+      });
+      // 계산 과정
+      var wl = C.workLines(k);
+      [wl.mean, wl.median, wl.mode].forEach(function (line) {
+        var p = h('p');
+        line.split(' = ').forEach(function (part, i) {
+          if (i) p.appendChild(document.createTextNode(' = '));
+          var m = /^(중앙값|최빈값)(:.*)$/.exec(part);
+          if (m) {
+            p.appendChild(h('span', 'key ' + (m[1] === '중앙값' ? 'key-med' : 'key-mode-' + k), m[1]));
+            p.appendChild(document.createTextNode(m[2]));
+          } else if (/[가-힣]{2,}/.test(part)) {
+            p.appendChild(document.createTextNode(part));
+          } else {
+            p.appendChild(h('span', 'nw', part));
+          }
+        });
+        work.appendChild(p);
+      });
+      var grid = h('div', 'sorted');
+      grid.style.setProperty('--cols', k === 'A' ? 5 : 4);
+      wl.sorted.forEach(function (v, i) {
+        var c = h('div', 'sc', String(v));
+        if (wl.medianPos.indexOf(i + 1) >= 0) c.className += ' med';
+        if (v === wl.modeValue) c.className += ' mode-' + k;
+        grid.appendChild(c);
+      });
+      work.appendChild(grid);
+      btnWork.addEventListener('click', function () {
+        var open = work.hidden;
+        work.hidden = !open;
+        btnWork.textContent = open ? '계산 과정 접기' : '계산 과정 보기';
+        btnWork.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+    });
+
+    // ② 가장 큰 값 바꿔 보기
+    $('#t1-change-desc').textContent = C.changeDesc();
+    var current = C.stats('A').max;
+    var line = NumberLine($('#t1-numline'));
+    var cmp = $('#t1-cmp');
+    function update(animate) {
+      var r = C.changeMax(current);
+      line.draw({ values: r.values, index: r.index, mean: r.mean, meanText: r.meanText, median: r.median, medianText: r.medianText }, animate);
+      var t = C.compareTable(current);
+      var tb = fillTable(cmp, [''].concat(t.head), t.rows.map(function (row) { return { cells: row }; }), { rowHead: true });
+      $$('tr', tb).forEach(function (tr, i) { if (t.rows[i][2] !== t.rows[i][1]) tr.lastChild.className = 'changed'; });
+    }
+    segment($('#t1-change-seg'), C.changeOptions().map(function (v) { return { value: v, label: C.changeLabel(v) }; }), current, function (v) { current = v; update(true); });
+    drawers[1].push(update);
+  }
+
+  // 2차시
+  function initTab2() {
+    var body = $('#t2-input-body'), cl = C.classes(C.WIDTH), f = C.freq('A', C.WIDTH), rows = [];
+    cl.forEach(function (c, i) {
+      var tr = h('tr'), th = h('td', '', C.classLabel(c)), td = h('td'), wrap = h('div', 'cellrow'), after = h('span', 'after');
+      var inp = h('input', 'inp'); inp.type = 'text'; inp.setAttribute('inputmode', 'decimal'); inp.setAttribute('autocomplete', 'off'); inp.setAttribute('aria-label', C.classLabel(c));
+      var ans = h('span', 'answer', String(f[i])); ans.hidden = true;
+      var badge = h('span', 'badge'); badge.setAttribute('aria-live', 'polite');
+      after.appendChild(ans); after.appendChild(badge);
+      wrap.appendChild(inp); wrap.appendChild(after);
+      td.appendChild(wrap); tr.appendChild(th); tr.appendChild(td); body.appendChild(tr);
+      rows.push({ inp: inp, ans: ans, badge: badge, f: f[i] });
+      inp.addEventListener('input', function () { setBadge(badge, null); updateSum(); });
+    });
+    var sumTr = h('tr', 'sum'), sumTd = h('td'), sumWrap = h('div', 'cellrow'), sumVal = h('span', 'sumv'), sumAfter = h('span', 'after'), sumAns = h('span', 'answer', String(C.total(f)));
+    sumAns.hidden = true;
+    sumAfter.appendChild(sumAns);
+    sumWrap.appendChild(sumVal); sumWrap.appendChild(sumAfter); sumTd.appendChild(sumWrap);
+    sumTr.appendChild(h('td', '', '합계')); sumTr.appendChild(sumTd); body.appendChild(sumTr);
+    function updateSum() {
+      var s = 0, any = false;
+      rows.forEach(function (r) { var v = C.parseNum(r.inp.value); if (v !== null && v === v) { s += v; any = true; } });
+      sumVal.textContent = any ? C.fmtNum(s) : '';
+    }
+    $('#t2-check').addEventListener('click', function () { rows.forEach(function (r) { setBadge(r.badge, C.judge(r.inp.value, r.f, 'freq')); }); });
+    var ansBtn = $('#t2-answer');
+    ansBtn.addEventListener('click', function () {
+      var on = ansBtn.getAttribute('aria-pressed') !== 'true';
+      pressed(ansBtn, on);
+      rows.forEach(function (r) { r.ans.hidden = !on; });
+      sumAns.hidden = !on;
+    });
+
+    // ② 계급의 크기 바꿔 보기
+    var width = C.WIDTHS[0];
+    function render() {
+      C.KEYS.forEach(function (k) {
+        var t = C.freqTable(k, width);
+        var rws = t.rows.map(function (r) { return { cls: r.hl ? 'hl' : '', cells: [r.label, String(r.f)] }; });
+        rws.push({ cls: 'sum', cells: ['합계', String(t.total)] });
+        fillTable($('#t2-table-' + k), ['시청 시간(분)', '학생 수(명)'], rws);
+      });
+      var lines = C.summaryLines(width);
+      $('#t2-line-1').textContent = lines[0];
+      $('#t2-line-2').textContent = lines[1];
+    }
+    segment($('#t2-width-seg'), C.WIDTHS.map(function (w) { return { value: w, label: C.widthLabel(w) }; }), width, function (w) { width = w; render(); });
+    render();
+  }
+
+  // 3차시
+  function initTab3() {
+    var fixY = false, fill = false, hist = false;
+    if (SHOT === 'fixed') { fixY = true; fill = true; }
+    var hA = Histogram($('#t3-hist-A'), 'A', 'A반 히스토그램'), hB = Histogram($('#t3-hist-B'), 'B', 'B반 히스토그램');
+    var poly = Polygon($('#t3-poly'), { rel: false, title: '도수분포다각형' });
+    var bY = $('#t3-fixy'), bF = $('#t3-fill'), bH = $('#t3-hist');
+    $('#t3-poly-note').textContent = C.polyNote();
+    function drawHist(animate) {
+      pressed(bY, fixY); pressed(bF, fill);
+      hA.draw({ y: fixY ? C.commonY() : C.articleY('A'), broken: !fill }, animate);
+      hB.draw({ y: fixY ? C.commonY() : C.articleY('B'), broken: false }, animate);
+      $('#t3-status').textContent = C.statusText(fixY, fill);
+    }
+    function drawPoly(animate) { pressed(bH, hist); poly.draw({ hist: hist }, animate); }
+    bY.addEventListener('click', function () { fixY = !fixY; drawHist(true); });
+    bF.addEventListener('click', function () { fill = !fill; drawHist(true); });
+    bH.addEventListener('click', function () { hist = !hist; drawPoly(true); });
+    drawers[3].push(drawHist, drawPoly);
+  }
+
+  // 4차시
+  function initTab4() {
+    $$('.t4-check').forEach(function (col) {
+      var k = col.getAttribute('data-key'), box = $('[data-role="fields"]', col), items = [];
+      $('[data-role="head"]', col).textContent = C.classTitle(k);
+      C.firstTwo(k).forEach(function (it, i) {
+        var row = h('div', 'field'), id = 't4-' + k + '-' + i;
+        row.style.setProperty('--lw', '150px');
+        var lab = h('label', '', it.label); lab.htmlFor = id;
+        var inp = h('input', 'inp'); inp.id = id; inp.type = 'text'; inp.setAttribute('inputmode', 'decimal'); inp.setAttribute('autocomplete', 'off');
+        var badge = h('span', 'badge'); badge.setAttribute('aria-live', 'polite');
+        row.appendChild(lab); row.appendChild(inp); row.appendChild(badge); box.appendChild(row);
+        inp.addEventListener('input', function () { setBadge(badge, null); });
+        items.push({ inp: inp, badge: badge, rel: it.rel });
+      });
+      $('[data-act="check"]', col).addEventListener('click', function () { items.forEach(function (it) { setBadge(it.badge, C.judge(it.inp.value, it.rel, 'rel')); }); });
+    });
+    var t = C.relTable(), rws = t.rows.map(function (r) { return { cells: r }; });
+    rws.push({ cls: 'sum', cells: t.sum });
+    fillTable($('#t4-full-table'), t.head, rws);
+    var fb = $('#t4-full-btn'), full = $('#t4-full');
+    fb.addEventListener('click', function () {
+      var open = full.hidden;
+      full.hidden = !open;
+      fb.classList.toggle('is-on', open);
+      fb.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+
+    var poly = Polygon($('#t4-poly'), { rel: true, title: '상대도수 분포다각형' });
+    drawers[4].push(function (animate) { poly.draw({}, animate); });
+
+    var crit = C.CRITERIA[0], bar = HBar($('#t4-hbar'));
+    $('#t4-fixed').textContent = C.criteriaNote();
+    function update(animate) {
+      var r = C.criteria(crit);
+      $('#t4-res-A').textContent = r.boxA;
+      $('#t4-res-B').textContent = r.boxB;
+      $('#t4-line-count').textContent = r.countLine;
+      $('#t4-line-rel').textContent = r.relLine;
+      bar.draw({ A: r.A.rel, B: r.B.rel }, animate);
+    }
+    segment($('#t4-crit-seg'), C.CRITERIA.map(function (c) { return { value: c, label: C.criteriaLabel(c) }; }), crit, function (c) { crit = c; update(true); });
+    drawers[4].push(update);
+  }
+
+  // 5차시
+  function initTab5() {
+    var D = C.DRAFT, tbl = $('#t5-draft');
+    tbl.textContent = '';
+    var thead = h('thead'), htr = h('tr');
+    D.head.forEach(function (x) { var th = h('th', '', x); th.scope = 'col'; htr.appendChild(th); });
+    thead.appendChild(htr); tbl.appendChild(thead);
+    var tb = h('tbody'), spans = [];
+    D.rows.forEach(function (r, i) {
+      var tr = h('tr', i === D.rows.length - 1 ? 'sum' : ''), rowSpans = [];
+      tr.appendChild(h('td', '', r[0]));
+      for (var j = 1; j < r.length; j++) {
+        var td = h('td');
+        td.appendChild(h('span', 'dv', r[j]));
+        var rc = h('span', 'rc'); rc.hidden = true;
+        td.appendChild(rc); tr.appendChild(td); rowSpans.push(rc);
+      }
+      spans.push(rowSpans); tb.appendChild(tr);
+    });
+    tbl.appendChild(tb);
+    $('#t5-recount').addEventListener('click', function () {
+      var res = C.recountDraft();
+      res.rows.forEach(function (row, i) {
+        row.cells.forEach(function (c, j) {
+          var s = spans[i][j];
+          s.textContent = c.again + ' ' + (c.same ? '✓' : '✕');
+          s.className = 'rc ' + (c.same ? 'same' : 'diff');
+          s.hidden = false;
+        });
+      });
+      var ok = $('#t5-allsame');
+      ok.textContent = res.message;
+      ok.hidden = !res.allSame;
+    });
+
+    var sm = C.summaryTable();
+    fillTable($('#t5-summary'), sm.head, sm.rows.map(function (r) { return { cells: r }; }));
+
+    var c1 = $('#t5-c1'), c2 = $('#t5-c2'), fin = $('#t5-final'), toast = $('#t5-toast'), timer = null;
+    $('#t5-initial').textContent = C.initialPrompt();
+    function compose() { fin.textContent = C.composePrompt(c1.value, c2.value); }
+    c1.addEventListener('input', compose);
+    c2.addEventListener('input', compose);
+    compose();
+    function fallbackCopy(text) {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus(); ta.select(); ta.setSelectionRange(0, text.length);
+      var ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta);
+      return ok;
+    }
+    function done(ok) {
+      if (!ok) return;
+      toast.hidden = false;
+      clearTimeout(timer);
+      timer = setTimeout(function () { toast.hidden = true; }, 2000);
+    }
+    $('#t5-copy').addEventListener('click', function () {
+      var text = C.composePrompt(c1.value, c2.value);
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () { done(true); }, function () { done(fallbackCopy(text)); });
+      } else {
+        done(fallbackCopy(text));
+      }
+    });
+  }
+
+  // ---------- 탭 고르기(#1~#5) ----------
+  var tabs = $$('.tab'), panels = $$('.panel');
+  function currentTab() { var m = /^#([1-5])$/.exec(location.hash); return m ? Number(m[1]) : 1; }
+  function showTab(n) {
+    tabs.forEach(function (t) { if (Number(t.getAttribute('data-tab')) === n) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current'); });
+    panels.forEach(function (p) { p.hidden = Number(p.getAttribute('data-tab')) !== n; });
+    redraw(n, false);
+  }
+
+  $('#foot').textContent = C.footerText();
+  initTab1(); initTab2(); initTab3(); initTab4(); initTab5();
+  window.addEventListener('hashchange', function () { showTab(currentTab()); });
+  var rz = 0;
+  window.addEventListener('resize', function () { cancelAnimationFrame(rz); rz = requestAnimationFrame(function () { redraw(currentTab(), false); }); });
+  showTab(currentTab());
+  if (SHOT === 'criteria60' && currentTab() === 4) {
+    var card = $('#t4-criteria-card');
+    window.scrollTo(0, card.getBoundingClientRect().top + window.pageYOffset - 16);
+  }
+})();
+</script>
+</body>
+</html>
