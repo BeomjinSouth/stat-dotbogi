@@ -329,10 +329,10 @@ h1,h2,h3,p{margin:0}
       <article class="card">
         <div class="card-head">
           <h2>③ Gemini에 보낼 요청문 만들기</h2>
-          <p class="desc">처음 요청문에 우리 모둠이 정한 조건 두 개를 더해 요청문을 만들고, 복사해서 Gemini에 붙여 넣어요.</p>
+          <p class="desc">기본 요청문에 우리 모둠이 정한 조건 두 개를 더해 요청문을 만들고, 복사해서 Gemini에 붙여 넣어요.</p>
         </div>
         <div class="stack">
-          <div class="box"><div class="box-title">처음 요청문</div><div class="box-body" id="t5-initial"></div></div>
+          <div class="box"><div class="box-title">기본 요청문</div><div class="box-body" id="t5-initial"></div></div>
           <div><label class="ta-label" for="t5-c1">조건 1</label><textarea class="ta" id="t5-c1" rows="2" placeholder="예: 평균만 쓰지 말고 중앙값도 함께 써 줘."></textarea></div>
           <div><label class="ta-label" for="t5-c2">조건 2</label><textarea class="ta" id="t5-c2" rows="2" placeholder="예: 60분 기준의 비율도 함께 밝혀 줘."></textarea></div>
           <div class="box"><div class="box-title">보낼 요청문</div><div class="box-body" id="t5-final"></div></div>
@@ -637,7 +637,7 @@ var StatCore = (function () {
       '아래는 1학년 A반 ' + a.n + '명, B반 ' + b.n + '명의 어제 하루 쇼츠 시청 시간(분)이야.',
       'A반: ' + a.sorted.join(', '),
       'B반: ' + b.sorted.join(', '),
-      '계급의 크기를 ' + WIDTH + '분으로 해서 두 반의 도수분포표와 상대도수를 표로 만들고, 두 반을 비교하는 학교 신문 기사를 400자 정도로 써 줘. A반이 쇼츠에 더 빠져 있다는 내용으로 제목도 붙여 줘.'
+      '계급의 크기를 ' + WIDTH + '분으로 해서 두 반의 도수분포표와 상대도수를 표로 만들고, 두 반을 비교하는 학교 신문 기사를 400자 정도로 써 줘. 제목도 붙여 줘.'
     ].join('\n');
   }
   function composePrompt(c1, c2) {
